@@ -1,0 +1,91 @@
+Dockerfiles
+
+for python application:-(Video:- https://www.youtube.com/watch?v=0UG2x2iWerk)
+
+Prerequsistes:-
+
+Step 1:- findout which framework? flask, fastapi or django
+Scan any python file for the imports like "from flask import Flask"
+Usually only one framework will be used but there can be combinations of framework.
+
+step 2 :- Findout the entrypoint
+app.py---->app.run()-------->flask
+main.py---->app=fastAPI()--->fastAPI
+manage.py--->manage.py------>Django
+
+NOTe:- app.py, main.py, manage.py are most commonly used but there is no contraints on python file naming conventions.
+
+Docker file steps
+
+step 1:- use the base image. https://hub.docker.com/_/python#image-variants
+In our projects we are using slim images as base image because we are doing deployments for EKS deployments and production based deployments.
+
+step 2:- identify dependencies, if u see a requiremnts.txt
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+step3:- based on the entrypoint create a CMD
+Flask:- CMD [ "python", "app.py" ]
+fastAPI:- CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+Django:- CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+Step4:- find out ports
+Flask:- look for app.run(port=5000)
+FastAPI:- deafault(8000)
+Django:- 8000
+
+Examples:-
+
+1. Flask
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+
+2. FastAPI
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+3. Django
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+example 4:-
+
+repo/
+├── app/
+│    ├── main.py
+│    └── __init__.py
+├── requirements.txt
+
+FROM python:3.13.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
+WORKDIR /app
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+RUN addgroup --system app && adduser --system --ingroup app app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app ./app
+COPY gunicorn_conf.py .
+USER app
+EXPOSE 8080
+CMD ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]
+<folder>.<file>:<variable>
+app=FastAPI, here app is the variable
+
+
