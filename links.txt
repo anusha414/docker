@@ -1,0 +1,54 @@
+docker file:-
+https://www.learnitguide.net/2018/06/dockerfile-explained-with-examples.html
+
+USER instruction:-
+
+https://www.geeksforgeeks.org/docker-user-instruction/
+Note:- USER instruction just sets to a specified user, it does not create the user if does not exists.
+
+example dockerfile example for "USER" instruction:-
+FROM ubuntu:22.04
+# Create a user with UID 1000
+RUN adduser --disabled-password --gecos "" --uid 1000 appuser
+# Switch to the new user
+USER appuser
+# Continue with your app setup
+
+How to check if my container is running a s non root user or the user that i specified:-
+1. kubectl exec -it <pod_name> -- /bin/bash
+o/p:- <non_root_user>@<pod_name>:/<workdirectory>
+eg:- C:\Users\venAMatle>kubectl exec -it dotnet-app-85c56d5f48-77pjm  -- /bin/bash
+dso@dotnet-app-85c56d5f48-77pjm:/app$
+
+Let us assume you dont have access to the Image that u r deploying, so to run the container as a nonroot user, You must use something like below in you mainfest/deployment file
+
+        securityContext:
+          runAsUser: 1000          # Use a non-root UID
+          runAsGroup: 1000         # Optional: group ID
+          runAsNonRoot: true       # Enforce non-root execution
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+
+Note:- using above code you can only set your container to use non root user but if the user does not exists in the container /etc/passwd we are not sure of the container behaves as expected, so use "init container" to setup a non root user in /etc/passwd when u dont have access to image/dockerfile
+
+NOTE:-
+
+DOCKER VOLUMES:-
+
+I have a dockerfile and i have created  an image.
+Whenever we execute a dockerfile, a layer will created for each line/instruction in the dockerfile that is dealing with data(like copying, installing), for other instructions like CMD, EXPOSE, a layer will not be created during docker build
+Later i made some changes in the same dockerfile, here what actually happens is that it will not execute all layers only delta changes will be taken to count, all the layers will be taken from docker cache and execute the new commands.
+
+read only layers:- The 4 layers that were created during docker build are considered as READ ONLY layers because if you want to make any changes in those command/layers/instructions u have to create new image.
+
+writable layers:- when a container is created it will generate some data, that data will be stored in the writable layer of the container and that data will exist as long as the container is alive, once the container is deleted the data will be lost.
+To make the data persistent we make use of volumes.
+Storage drivers are responsible for writing the data in the containers and also stores the readonly layers in the containers.eg:- overlay2
+docker selects its own storage driver based on OS
+Volume drivers are responsible for persisting data of the containers.eg;- EBS, azure file storage, local drivers
+
+
