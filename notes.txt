@@ -1,8 +1,80 @@
 Dockerfiles
 
+1. For dotnet applications:-
+
+For .Net apps, we usually use a multi-stage build:-
+-> Build stage:- compiles the app(SDK image)
+-> Runtime stage:- runs the app(lighter image)
+
+example 1:-
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+# Copy project file and restore dependencies
+COPY *.csproj .
+RUN dotnet restore
+# Copy everything else and build
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+# Copy only published output
+COPY --from=build /app/publish .
+# Expose port
+EXPOSE 80
+# Run the app
+ENTRYPOINT ["dotnet", "YourApp.dll"]
+
+example 2:- Dockerfile for pre-built artifacts
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+# Copy published artifacts from pipeline
+COPY publish/ .
+EXPOSE 80
+ENTRYPOINT ["dotnet", "YourApp.dll"]
+
+Question 1:- What if there are multiple .csproj files in your repo? How will you identify the ENTRYPOINT DLL
+Check the .csproj file if it contains "﻿<Project Sdk="Microsoft.NET.Sdk.Web">", it is runnable and is the entrypoint
+if it contains "﻿<Project Sdk="Microsoft.NET.Sdk">", it is not runnable and is not the entrypoint
+API/WEB means it is the ENTRYPOINT
+
+Other than basic Dockerfile there are few important steps in dockerfile that must be taken care:-
+
+# Base runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+# Set working directory
+WORKDIR /app
+# Create non-root user
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:8080 \
+   DOTNET_RUNNING_IN_CONTAINER=true \
+   DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+# Expose port
+EXPOSE 8080
+# Copy artifacts
+COPY publish/ .
+# Change ownership
+RUN chown -R appuser:appgroup /app
+# Switch to non-root user
+USER appuser
+# Health check (optional but important)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+CMD curl --fail http://localhost:8080/health || exit 1
+# Entry point
+ENTRYPOINT ["dotnet", "YourApp.dll"]
+
+1. Create a non root user:-
+# Create non-root user
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
+2. Add enviornment variables:-
+
+
 for python application:-(Video:- https://www.youtube.com/watch?v=0UG2x2iWerk)
 
-Prerequsistes:-
+Prerequisites:-
 
 Step 1:- findout which framework? flask, fastapi or django
 Scan any python file for the imports like "from flask import Flask"
