@@ -172,4 +172,117 @@ CMD ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]
 <folder>.<file>:<variable>
 app=FastAPI, here app is the variable
 
+DOCKER LAYERS:-
+every line in a dockerfile is treated as layer.
+“Each significant step in a Dockerfile creates a layer that adds or modifies files, and Docker stacks these layers to build the final image efficiently using caching.”
+“Every Dockerfile instruction contributes to an image layer, but only some instructions create actual filesystem changes, while others add metadata.”
 
+🔹 Two types of layers:
+1. Filesystem Layers (Heavy)
+These actually change files:
+RUN
+COPY
+ADD
+👉 These:
+Add files
+Install packages
+Increase image size
+
+2. Metadata Layers (Lightweight)
+These don’t change filesystem much:
+CMD
+ENTRYPOINT
+ENV
+WORKDIR
+LABEL
+👉 These:
+Store configuration
+Very small in size
+Still part of image history
+
+LAYERS CACHING:-
+Docker layer caching is a mechanism where Docker reuses previously built image layers if the instruction and its dependencies have not changed, avoiding redundant execution.
+
+Example:-
+
+Dockerfile:-
+FROM node:18
+WORKDIR /app
+# Step 1: Copy only dependency file
+COPY package.json .
+# Step 2: Install dependencies
+RUN npm install
+# Step 3: Copy application code
+COPY . .
+# Step 4: Run app
+CMD ["node", "app.js"]
+
+Build 1:- docker build -t myapp:v1 .
+output 1:-
+Step 1/5 : FROM node:18
+---> pulled image
+Step 2/5 : WORKDIR /app
+---> Running
+Step 3/5 : COPY package.json .
+---> Running
+Step 4/5 : RUN npm install
+---> Installing dependencies
+Step 5/5 : COPY . .
+---> Running
+
+Build2:- docker build -t myapp:v2 .
+output2:-
+Step 1/5 : FROM node:18
+---> Using cache
+Step 2/5 : WORKDIR /app
+---> Using cache
+Step 3/5 : COPY package.json .
+---> Using cache
+Step 4/5 : RUN npm install
+---> Using cache
+Step 5/5 : COPY . .
+---> Using cache
+
+🔴 Scenario 1: Change in
+app.js
+👉 Only application code changed
+
+Step 1 → cache ✅
+Step 2 → cache ✅
+Step 3 → cache ✅
+Step 4 → cache ✅
+Step 5 → rebuild ❌
+
+NOTE:- “We copy requirements.txt first to take advantage of Docker layer caching. Since dependencies don’t change frequently, Docker can reuse the cached layer for pip install. This avoids reinstalling dependencies every time the application code changes, making builds faster.”
+
+IMAGE LAYEERS AND CONTAINERS LAYERS:-
+🐳 Image Layer
+Image layers are read-only layers created during the Docker build process, where each layer stores changes like installed software or added files.
+📦 Container Layer
+Container layer is a writable layer added when a container runs, where all changes like file edits or new data are stored.
+🧠 Even Simpler Version (One-liner)
+Image layer → read-only (build time)
+Container layer → read-write (run time)
+
+COPY-ON-WRITE:-
+“Copy-on-Write in Docker means that image layers are shared as read-only, and when a container modifies a file, Docker copies that file into the writable container layer and applies the changes there, leaving the original image unchanged.”
+
+example:-
+step1:- Build image
+dockerfile:- RUN echo "hello" > file.txt
+👉 file.txt is stores in an image layer
+
+step2:- run coontainer
+docker run -it myimage bash
+👉 Now container has:
+Image layers (read-only)
+Container layer (empty, writable)
+
+step3:- Modify file
+echo "world" > file.txt
+
+🔥 What happens internally?
+Docker sees file is in read-only layer
+It copies file into container layer
+Modification happens in container layer
+Original file remains unchanged
