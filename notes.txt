@@ -115,8 +115,14 @@ Django:- CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 Step4:- find out ports
 Flask:- look for app.run(port=5000)
-FastAPI:- deafault(8000)
+FastAPI:- default(8000)
 Django:- 8000
+
+step5:- creating a non-root user
+Create group and user
+RUN groupadd -r appuser \
+    && useradd -r -g appuser -m -d /home/appuser appuser
+USER appuser
 
 Examples:-
 
