@@ -124,6 +124,14 @@ RUN groupadd -r appuser \
     && useradd -r -g appuser -m -d /home/appuser appuser
 USER appuser
 
+NOTE:-
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)--------?If this is not there then check pod logs to see where the traffic is accepted
+✅ 0.0.0.0 allows traffic from:
+other pods
+services
+ingress
+
 Examples:-
 
 1. Flask
