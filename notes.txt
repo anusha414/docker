@@ -329,3 +329,12 @@ Docker sees file is in read-only layer
 It copies file into container layer
 Modification happens in container layer
 Original file remains unchanged
+
+NOTE:-
+If you're trying to upload a Docker image as a GitHub Actions artifact, upload-artifact cannot directly upload an image from the local Docker daemon. You need to first save the image as a tar file.
+- name: Build Docker image
+  run: |
+    docker build -t my-app:${{ github.sha }} .
+- name: Save Docker image
+  run: |
+    docker save my-app:${{ github.sha }} -o my-app.tar
