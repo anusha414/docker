@@ -338,3 +338,14 @@ If you're trying to upload a Docker image as a GitHub Actions artifact, upload-a
 - name: Save Docker image
   run: |
     docker save my-app:${{ github.sha }} -o my-app.tar
+
+Docker Save
+docker save exports one or more Docker images into a TAR archive file.
+Useful for transferring images between servers without using a container registry (Docker Hub, ACR, ECR, etc.).
+Example: docker save -o myapp.tar myapp:latest
+
+Docker Load
+
+docker load imports a previously saved TAR archive back into Docker.
+Restores the image with its original tags and metadata.
+Example: docker load -i myapp.tar
