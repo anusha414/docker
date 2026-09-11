@@ -1,0 +1,93 @@
+WIZ:-
+1. Wiz is a cloud security platform that helps organizations identify, prioritize, and remediate security risks across cloud environments such as 
+Amazon Web Services (AWS), Microsoft Azure, Google Cloud Platform, and Kubernetes. 
+2. It provides agentless visibility into cloud resources and uses a security graph to correlate vulnerabilities, misconfigurations, identities, exposed assets, and 
+sensitive data
+3. In simple terms, Wiz scans a company’s cloud infrastructure and creates a map of what’s running, what’s exposed, and what could be dangerous, 
+helping security teams prioritize the most important problems.
+4. In our organization we mainly used it for scanning container images
+
+Very Initial WIZ setup:-
+
+1. WIZ is not free of cost, So you need to have a WIZ tenant. similar to organization in github enterprise.
+2. you need to have WIZ service account, it is just like user/role so that you can access your wiz tenant, it provides client_id and client_secret.
+3. you need to have wiz cli installed wherever you are scanning the image.
+
+Actual Implementation:-
+
+1. Request wiz_client_id and wiz_client_secret and policy name from then security team.
+2. Install wiz cli
+3. authenticate to wiz
+4. Run wiz scan for the image you created
+- name: Scan Image
+  run: |
+    wizcli docker scan myapp:${{ github.sha }}
+
+wiz checks for below during scanning:-
+Operating System Packages
+Application Dependencies
+Known CVEs
+Secrets
+Malware
+Misconfigurations
+
+output:- 
+Image: myapp:abc123
+Critical: 1
+High: 4
+Medium: 10
+Finding:
+CVE-2026-XXXX
+Package: openssl
+Installed: 1.1.1k
+Fixed: 1.1.1w
+
+5. the output will be crosschecked with the policy you chose, if policy is like below:-
+Critical > 0 = Fail
+Then the workflow should fail when critical vulnerabilities are found.
+
+NOTE:- If you scan an image with Wiz but do not enforce any policy or fail condition, your workflow will usually continue and deploy successfully.
+
+What does WIZ scan for in a image:-
+
+1. Vulnerabilities (CVEs)
+eg:- FROM ubuntu:20.04, Inside that image are packages like:
+openssl
+curl
+glibc
+bash
+Wiz compares the versions of these packages against known vulnerability databases and reports things like:
+CVE-2026-12345
+Package: openssl
+Severity: Critical
+Current Version: 1.1.1k
+Fixed Version: 1.1.1w
+
+2. Operating System Package Risks
+Wiz inspects the base image and installed OS packages.
+eg:- FROM ubuntu:18.04
+findings:- 
+Ubuntu version no longer supported
+Multiple critical packages detected
+Outdated package repositories
+Security teams usually love catching these because many vulnerabilities come from outdated base images.
+
+3. Application Dependencies
+Wiz can inspect application packages as well
+If any dependency contains known CVEs, Wiz reports them.
+
+4. Secrets in Images
+Suppose someone accidentally does this:
+ENV DB_PASSWORD=MyPassword123
+Wiz may flag embedded secrets because attackers can extract them after pulling the image.
+eg:- Secret Detected
+Location:
+/app/config.json
+Type:
+Azure Credential
+
+5. Misconfigurations
+Wiz evaluates container security best practices.
+Example:
+Running as root
+
