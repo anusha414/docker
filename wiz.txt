@@ -91,3 +91,12 @@ Wiz evaluates container security best practices.
 Example:
 Running as root
 
+TESTING EXAMPLES:-
+
+1. FROM ubuntu:20.04
+RUN apt-get update && \
+   apt-get install -y curl openssl
+CMD ["bash"]
+
+
+
